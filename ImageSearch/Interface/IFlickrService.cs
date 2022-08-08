@@ -7,6 +7,6 @@ namespace ImageSearch.Interface
 {
     public interface IFlickrService
     {
-        Task<List<Image>> GetPhotoUrls(string serchString, int totalPicture);
+        Task<List<Uri>> GetPhotoUrls(string serchString, int totalPicture);
     }
 }

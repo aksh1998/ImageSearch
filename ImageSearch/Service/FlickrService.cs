@@ -16,16 +16,14 @@ namespace ImageSearch.Service
     public class FlickrService : IFlickrService
     {
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IUrlToImageConverterService _urlToImageConverter;
-        public FlickrService(IHttpClientFactory httpClientFactory, IUrlToImageConverterService urlToImageConverter)
+        public FlickrService(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
-            _urlToImageConverter = urlToImageConverter;
         }
 
-        public async Task<List<Image>> GetPhotoUrls(string serchString, int totalPicture)
+        public async Task<List<Uri>> GetPhotoUrls(string serchString, int totalPicture)
         {
-            var resultPhoto = new List<Image>();
+            var uris = new List<Uri>();
             var client = _httpClientFactory.CreateClient("flickrclient");
             client.BaseAddress = new Uri($"https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=ca370d51a054836007519a00ff4ce59e&text={serchString.Trim()}&per_page={totalPicture}&format=json&extras=url_o");
             var response = await client.GetAsync("");
@@ -33,16 +31,32 @@ namespace ImageSearch.Service
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 string res = response.Content.ReadAsStringAsync().Result;
-                    int first = res.IndexOf('(') + 1;
-                    int last = res.LastIndexOf(')');
-                var expect = res[first..last];
-                JObject? jsonResult = JObject.Parse(expect)["photos"] as JObject;
+                var cleanResponse = RemoveNoiseFormResponse(res);
+                JObject? jsonResult = JObject.Parse(cleanResponse)["photos"] as JObject;
 
                 var responseObj = jsonResult != null ? JsonConvert.DeserializeObject<PhotosResponse>(jsonResult.ToString())
                     : new PhotosResponse();
-                resultPhoto = _urlToImageConverter.GetPhoto(responseObj.Photo);
+
+                if(responseObj.Photo != null)
+                {
+                    responseObj.Photo.ForEach(photo => {
+                        uris.Add(new Uri($"https://live.staticflickr.com/{photo.Server}/{photo.Id}_{photo.Secret}.jpg"));
+                    });
+                }
             }
-            return resultPhoto;
+            return uris;
+        }
+
+        private string RemoveNoiseFormResponse(string response)
+        {
+            var result = "";
+            if (!string.IsNullOrEmpty(response))
+            {
+                int first = response.IndexOf('(') + 1;
+                int last = response.LastIndexOf(')');
+                result = response[first..last];
+            }
+            return result;
         }
     }
 }

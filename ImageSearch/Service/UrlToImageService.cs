@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -15,14 +16,19 @@ namespace ImageSearch.Service
 {
     public class UrlToImageConverterService : IUrlToImageConverterService
     {
-        public List<Image> GetPhoto(List<Photo> photos)
+        private readonly IHttpClientFactory _httpClientFactory;
+        public UrlToImageConverterService(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
+        public async Task<List<Image>> GetPhoto(List<Uri> uris)
         {
             var images = new List<Image>();
-            photos?.ForEach(photo =>
+            uris?.ForEach(uri =>
             {
                 Image img = new Image
                 {
-                    Source = DownloadImage(photo),
+                    Source = DownloadImage(uri),
                     Stretch = Stretch.UniformToFill,
                     StretchDirection = StretchDirection.DownOnly,
                 };
@@ -31,9 +37,9 @@ namespace ImageSearch.Service
             return images;
         }
 
-        private BitmapImage DownloadImage(Photo photo)
+        private BitmapImage DownloadImage(Uri uri)
         {
-            return byteArrayToImage(new WebClient().DownloadData($"https://live.staticflickr.com/{photo.Server}/{photo.Id}_{photo.Secret}.jpg"));
+            return byteArrayToImage(_httpClientFactory.CreateClient().GetByteArrayAsync(uri).Result);
         }
 
         private BitmapImage byteArrayToImage(byte[] byteArrayIn)
