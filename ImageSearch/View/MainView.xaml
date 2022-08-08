@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ImageSearch"
+        xmlns:fa="http://schemas.fontawesome.io/icons/"
         mc:Ignorable="d"
         Title="MainWindow" Height="700" Width="1200">
     <ScrollViewer>
@@ -41,7 +42,11 @@
                                 Content="Search"
                                 IsDefault="True"/>
                     </Grid>
-
+                    <fa:ImageAwesome Icon="Refresh"
+                                     Visibility="{Binding IsLoading, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                                     Spin="True"
+                                     Margin="0,50,0,50"
+                                     Height="250" Width="250" />
                     <ItemsControl ItemsSource="{Binding Images,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

@@ -15,7 +15,6 @@ namespace ImageSearchTest
     public class MainViewModelTest
     {
         private MainViewModel _vm;
-        private List<Image> images;
         private Mock<IFlickrService> _mockFlickerService;
         private Mock<IDialogService> _mockDialogService;
         private Mock<IUrlToImageConverterService> _mockUrlToImageConverterService;
@@ -25,7 +24,8 @@ namespace ImageSearchTest
             _mockFlickerService = new Mock<IFlickrService>();
             _mockDialogService = new Mock<IDialogService>();
             _mockUrlToImageConverterService = new Mock<IUrlToImageConverterService>();
-            _vm = new MainViewModel(_mockFlickerService.Object, _mockDialogService.Object);
+            _vm = new MainViewModel(_mockFlickerService.Object, _mockDialogService.Object,
+                _mockUrlToImageConverterService.Object);
 
             SetupData();
             SetupMockMethods();
@@ -60,17 +60,36 @@ namespace ImageSearchTest
                 Times.Once);
         }
 
+        [TestMethod]
+        public void OnSubmit_Valid_SearchString_UrlToImageConverterService_CalledOnce()
+        {
+            _vm.SearchString = "Google";
+            _vm.OnSubmit();
+            _mockUrlToImageConverterService.Verify(
+                x => x.GetPhoto(It.IsAny<List<Uri>>()),
+                Times.Once);
+        }
+
+        [TestMethod]
+        public void OnSubmit_InValid_SearchString_UrlToImageConverterService_NeverCalled()
+        {
+            _vm.SearchString = " ";
+            _vm.OnSubmit();
+            _mockUrlToImageConverterService.Verify(
+                x => x.GetPhoto(It.IsAny<List<Uri>>()),
+                Times.Never);
+        }
+
         private void SetupData()
         {
             _vm.SearchString = "India";
             _vm.ImageCount = "5";
-            images = new List<Image>();
         }
 
         private void SetupMockMethods()
         {
-            _mockUrlToImageConverterService.Setup(x => x.GetPhoto(It.IsAny<List<Photo>>())).Returns(images);
-            _mockFlickerService.Setup(x => x.GetPhotoUrls(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(images);
+            _mockUrlToImageConverterService.Setup(x => x.GetPhoto(It.IsAny<List<Uri>>())).ReturnsAsync(new List<Image>());
+            _mockFlickerService.Setup(x => x.GetPhotoUrls(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(new List<Uri>());
         }
     }
 }

@@ -3,6 +3,7 @@ using ImageSearch.Interface;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace ImageSearch.ViewModel
@@ -11,15 +12,20 @@ namespace ImageSearch.ViewModel
     {
         private readonly IFlickrService _flickrService;
         private readonly IDialogService _dialogService;
+        private readonly IUrlToImageConverterService _urlToImageConverter;
         private string _searchString;
         private string _imageCount;
         private List<Image> _images;
-        public MainViewModel(IFlickrService flickrService, IDialogService dialogService)
+        private Visibility _isLoading;
+        public MainViewModel(IFlickrService flickrService, IDialogService dialogService
+            , IUrlToImageConverterService urlToImageConverter)
         {
             _flickrService = flickrService;
             _dialogService = dialogService;
             ImageCount = "0";
             OnBtnSubmit = new RelayCommand(OnSubmit);
+            _urlToImageConverter = urlToImageConverter;
+            SetIsLoadingStatus(Visibility.Collapsed);
         }
 
         public RelayCommand OnBtnSubmit { get; set; }
@@ -42,6 +48,14 @@ namespace ImageSearch.ViewModel
             }
         }
 
+        public Visibility IsLoading {
+            get => _isLoading;
+            set
+            {
+                _isLoading = value;
+                OnPropertyChanged(nameof(IsLoading));
+            }
+        }
         public List<Image> Images
         {
             get => _images;
@@ -56,11 +70,13 @@ namespace ImageSearch.ViewModel
         {
             try
             {
+                SetIsLoadingStatus(Visibility.Visible);
+                ResetPreviousImages();
                 ValidateInput(SearchString);
                 var response = await _flickrService.GetPhotoUrls(SearchString, int.Parse(ImageCount));
                 if (response != null)
                 {
-                    Images = response;
+                    Images = await _urlToImageConverter.GetPhoto(response);
                 }
             }
             catch (ArgumentException ex)
@@ -71,6 +87,20 @@ namespace ImageSearch.ViewModel
             {
                 _dialogService.ShowMessageBox(ex.Message, "Error");
             }
+            finally
+            {
+                SetIsLoadingStatus(Visibility.Collapsed);
+            }
+        }
+
+        private void SetIsLoadingStatus(Visibility status)
+        {
+            IsLoading = status;
+        }
+
+        private void ResetPreviousImages()
+        {
+            Images = new List<Image>();
         }
 
         private void ValidateInput(string inputString)
